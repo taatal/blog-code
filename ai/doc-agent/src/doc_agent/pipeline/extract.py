@@ -31,15 +31,12 @@ def extract_fields(doc: dict, doc_type: str) -> dict:
             tool_choice={"type": "tool", "name": tool_name},
             messages=[{
                 "role": "user",
-                "content": f"""Extract all relevant fields from this {doc_type}.
-Be precise with numbers and dates. If a field is not present in the document, omit it.
-For line items, extract every row from the itemised table.
-
-Document:
-{doc['full_text']}
-
-Tables found in document:
-{tables_text}""",
+                "content": f"Extract all relevant fields from this {doc_type}.\n"
+                           f"Be precise with numbers and dates. "
+                           f"If a field is not present in the document, omit it.\n"
+                           f"For line items, extract every row from the itemised table.\n\n"
+                           f"Document:\n{doc['full_text']}\n\n"
+                           f"Tables found in document:\n{tables_text}",
             }],
         )
         return response.tool_input
@@ -63,24 +60,28 @@ def _retry_extraction(doc: dict, doc_type: str, previous: dict, errors: list[str
             messages=[
                 {
                     "role": "user",
-                    "content": f"""Extract all relevant fields from this {doc_type}.
-
-Document:
-{doc['full_text']}
-
-Tables:
-{tables_text}""",
+                    "content": f"Extract all relevant fields from this {doc_type}.\n\n"
+                               f"Document:\n{doc['full_text']}\n\n"
+                               f"Tables:\n{tables_text}",
                 },
                 {
                     "role": "assistant",
-                    "content": [{"type": "tool_use", "id": "prev", "name": tool_name, "input": previous}],
+                    "content": [
+                        {"type": "tool_use", "id": "prev", "name": tool_name, "input": previous}
+                    ],
                 },
                 {
                     "role": "user",
-                    "content": [{"type": "tool_result", "tool_use_id": "prev", "content": f"""Validation failed with these errors:
-{error_context}
-
-Please re-extract, paying careful attention to the specific fields mentioned in the errors. Double-check all numbers against the original document."""}],
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": "prev",
+                            "content": f"Validation failed with these errors:\n{error_context}\n\n"
+                                       f"Please re-extract, paying careful attention to the "
+                                       f"specific fields mentioned in the errors. "
+                                       f"Double-check all numbers against the original document.",
+                        }
+                    ],
                 },
             ],
         )
