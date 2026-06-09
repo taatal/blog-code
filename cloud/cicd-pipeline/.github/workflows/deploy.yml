@@ -1,0 +1,158 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION: eu-west-1
+  ECR_REPOSITORY: api-service
+  ECS_CLUSTER: api-cluster
+  ECS_SERVICE: api-service
+  CODEDEPLOY_APP: api-deploy
+  CODEDEPLOY_GROUP: api-production
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+      - name: Notify test result
+        if: always()
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "${{ job.status == 'success' && '✓' || '✗' }} Tests ${{ job.status }} on `${{ github.ref_name }}` by ${{ github.actor }}"
+            }
+
+  build:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.build.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        id: build
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Notify build complete
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "📦 Image built: `${{ github.sha }}`. Starting canary deployment..."
+            }
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition api-service \
+            --query taskDefinition \
+            > task-def.json
+
+      - name: Update task definition with new image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-def.json
+          container-name: api
+          image: ${{ needs.build.outputs.image }}
+
+      - name: Register new task definition
+        id: register
+        run: |
+          ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://${{ steps.task-def.outputs.task-definition }} \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "task_def_arn=$ARN" >> $GITHUB_OUTPUT
+
+      - name: Create CodeDeploy deployment
+        id: deploy
+        run: |
+          DEPLOY_ID=$(aws deploy create-deployment \
+            --application-name $CODEDEPLOY_APP \
+            --deployment-group-name $CODEDEPLOY_GROUP \
+            --revision revisionType=AppSpecContent,appSpecContent={content='{"version":1,"Resources":[{"TargetService":{"Type":"AWS::ECS::Service","Properties":{"TaskDefinition":"'"${{ steps.register.outputs.task_def_arn }}"'","LoadBalancerInfo":{"ContainerName":"api","ContainerPort":8080}}}}]}'} \
+            --query 'deploymentId' \
+            --output text)
+          echo "deployment_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
+
+      - name: Wait for deployment
+        run: |
+          aws deploy wait deployment-successful \
+            --deployment-id ${{ steps.deploy.outputs.deployment_id }}
+
+      - name: Notify deployment success
+        if: success()
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "🚀 Canary deployment complete. `${{ github.sha }}` is now serving 100% traffic."
+            }
+
+      - name: Notify deployment failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "🔴 Deployment FAILED and rolled back. Commit: `${{ github.sha }}`. Check CloudWatch and CodeDeploy console."
+            }
