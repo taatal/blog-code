@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "db-analytics": {
+      "command": "/absolute/path/to/db-mcp-server/.venv/bin/python3",
+      "args": ["-m", "db_analytics_mcp", "--db", "/absolute/path/to/db-mcp-server/seed/sample.db"],
+      "env": {}
+    }
+  }
+}
