@@ -1,0 +1,28 @@
+{
+  "firefly": {
+    "client_id": "your-client-id-from-developer-console",
+    "client_secret": "your-client-secret"
+  },
+  "aem": {
+    "host": "https://author-p12345-e67890.adobeaemcloud.com",
+    "token": "your-aem-service-credentials-token"
+  },
+  "jobs": [
+    {
+      "prompt": "Professional lifestyle photography, modern office space with natural lighting, warm tones, shallow depth of field",
+      "folder": "campaigns/summer-2026",
+      "name_prefix": "hero-banner",
+      "width": 2048,
+      "height": 2048,
+      "num_variations": 4
+    },
+    {
+      "prompt": "Abstract geometric background, soft gradient from blue to purple, minimal, clean",
+      "folder": "campaigns/summer-2026",
+      "name_prefix": "bg-abstract",
+      "width": 2048,
+      "height": 1024,
+      "num_variations": 4
+    }
+  ]
+}
