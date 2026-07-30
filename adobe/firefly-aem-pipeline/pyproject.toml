@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Generate assets with Adobe Firefly Services and upload to AEM Assets as a Cloud Service"
 requires-python = ">=3.11"
 license = "MIT"
-authors = [{name = "Taatal Digital", email = "hello@digital.taatal.com"}]
+authors = [{name = "Taatal Digital", email = "enquiry@taatal.com"}]
 dependencies = [
     "httpx>=0.27.0",
 ]

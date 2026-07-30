@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Production RAG pipeline with hybrid search, re-ranking, and evaluation"
 requires-python = ">=3.11"
 license = "MIT"
-authors = [{name = "Taatal Digital", email = "hello@digital.taatal.com"}]
+authors = [{name = "Taatal Digital", email = "enquiry@taatal.com"}]
 dependencies = [
     "anthropic>=0.40.0",
     "openai>=1.0.0",
