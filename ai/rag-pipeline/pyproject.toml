@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rag-pipeline"
+version = "0.1.0"
+description = "Production RAG pipeline with hybrid search, re-ranking, and evaluation"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "Taatal Digital", email = "hello@digital.taatal.com"}]
+dependencies = [
+    "anthropic>=0.40.0",
+    "openai>=1.0.0",
+    "chromadb>=0.5.0",
+    "sentence-transformers>=3.0.0",
+    "rank-bm25>=0.2.2",
+    "pymupdf>=1.24.0",
+]
+
+[project.urls]
+Homepage = "https://digital.taatal.com"
+Repository = "https://github.com/taatal/blog-code/tree/main/ai/rag-pipeline"
+Blog = "https://digital.taatal.com/blogs/build-rag-pipeline-that-actually-works"
+
+[project.scripts]
+rag-pipeline = "rag_pipeline.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "N",     # pep8-naming
+    "D",     # pydocstyle
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "S",     # flake8-bandit (security)
+    "A",     # flake8-builtins
+    "C4",    # flake8-comprehensions
+    "SIM",   # flake8-simplify
+]
+ignore = [
+    "D100",  # module docstring (we have them, but not all)
+    "D104",  # package docstring
+    "D102",  # test methods are self-documenting via name
+    "S101",  # assert in tests is fine
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true

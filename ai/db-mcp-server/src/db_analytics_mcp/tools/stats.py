@@ -1,9 +1,21 @@
+# =============================================================================
+# Taatal Digital (digital.taatal.com)
+# Copyright 2026 - All rights reserved under MIT License
+#
+# Project: DB Analytics MCP Server - Safe Database Queries for AI
+# Author:  Taatal Digital Engineering
+# Source:  https://github.com/taatal/blog-code/tree/main/ai/db-mcp-server
+# =============================================================================
 from mcp.server.fastmcp import FastMCP, Context
 
 from db_analytics_mcp.formatting import format_table
 
+_MAX_STAT_COLUMNS = 10
+_MAX_DISTINCT_VALUES = 20
 
-def register(mcp: FastMCP):
+
+def register(mcp: FastMCP) -> None:
+    """Register statistical analysis tools with the MCP server."""
 
     @mcp.tool()
     async def table_stats(table_name: str, ctx: Context) -> str:
@@ -20,40 +32,70 @@ def register(mcp: FastMCP):
 
         columns = await db.get_table_schema(table_name)
 
-        count_result = await db.execute_safe_query(f"SELECT COUNT(*) as total FROM [{table_name}]")
-        row_count = count_result["rows"][0]["total"] if count_result["rows"] else 0
+        count_result = await db.execute_safe_query(
+            f"SELECT COUNT(*) as total FROM [{table_name}]"
+        )
+        row_count = (
+            count_result["rows"][0]["total"]
+            if count_result["rows"]
+            else 0
+        )
 
-        numeric_cols = [c for c in columns if c["type"].upper() in ("INTEGER", "REAL", "NUMERIC", "FLOAT", "DOUBLE")]
-        text_cols = [c for c in columns if c["type"].upper() in ("TEXT", "VARCHAR", "CHAR")]
+        numeric_cols = [
+            c for c in columns
+            if c["type"].upper() in (
+                "INTEGER", "REAL", "NUMERIC", "FLOAT", "DOUBLE"
+            )
+        ]
+        text_cols = [
+            c for c in columns
+            if c["type"].upper() in ("TEXT", "VARCHAR", "CHAR")
+        ]
 
         lines = [
             f"Table: {table_name}",
             f"Total rows: {row_count:,}",
-            f"Columns: {len(columns)} ({len(numeric_cols)} numeric, {len(text_cols)} text)",
+            f"Columns: {len(columns)} "
+            f"({len(numeric_cols)} numeric, {len(text_cols)} text)",
             "",
         ]
 
         if numeric_cols:
             stat_rows = []
-            for col in numeric_cols[:10]:
+            for col in numeric_cols[:_MAX_STAT_COLUMNS]:
                 stats_result = await db.execute_safe_query(
-                    f"SELECT MIN([{col['name']}]) as min, MAX([{col['name']}]) as max, "
-                    f"ROUND(AVG([{col['name']}]), 2) as avg FROM [{table_name}] "
+                    f"SELECT MIN([{col['name']}]) as min, "
+                    f"MAX([{col['name']}]) as max, "
+                    f"ROUND(AVG([{col['name']}]), 2) as avg "
+                    f"FROM [{table_name}] "
                     f"WHERE [{col['name']}] IS NOT NULL"
                 )
                 if stats_result["rows"]:
                     row = stats_result["rows"][0]
-                    stat_rows.append({"column": col["name"], "min": row["min"], "max": row["max"], "avg": row["avg"]})
+                    stat_rows.append({
+                        "column": col["name"],
+                        "min": row["min"],
+                        "max": row["max"],
+                        "avg": row["avg"],
+                    })
 
             if stat_rows:
                 lines.append("Numeric columns:")
-                lines.append(format_table(["column", "min", "max", "avg"], stat_rows))
+                lines.append(
+                    format_table(
+                        ["column", "min", "max", "avg"],
+                        stat_rows,
+                    )
+                )
 
         return "\n".join(lines)
 
     @mcp.tool()
-    async def column_stats(table_name: str, column_name: str, ctx: Context) -> str:
-        """Get detailed statistics for a specific column including value distribution.
+    async def column_stats(
+        table_name: str, column_name: str, ctx: Context
+    ) -> str:
+        """Get detailed statistics for a specific column including
+        value distribution.
 
         Args:
             table_name: The table containing the column.
@@ -65,17 +107,24 @@ def register(mcp: FastMCP):
             return f"Table '{table_name}' not found."
 
         if not await db.column_exists(table_name, column_name):
-            return f"Column '{column_name}' not found in '{table_name}'."
+            return (
+                f"Column '{column_name}' not found "
+                f"in '{table_name}'."
+            )
 
         stats_result = await db.execute_safe_query(
             f"SELECT COUNT(*) as total, "
             f"COUNT(DISTINCT [{column_name}]) as distinct_count, "
-            f"SUM(CASE WHEN [{column_name}] IS NULL THEN 1 ELSE 0 END) as null_count "
+            f"SUM(CASE WHEN [{column_name}] IS NULL "
+            f"THEN 1 ELSE 0 END) as null_count "
             f"FROM [{table_name}]"
         )
 
         if not stats_result["rows"]:
-            return f"Unable to compute statistics for '{table_name}.{column_name}'."
+            return (
+                f"Unable to compute statistics for "
+                f"'{table_name}.{column_name}'."
+            )
 
         info = stats_result["rows"][0]
         lines = [
@@ -86,21 +135,36 @@ def register(mcp: FastMCP):
             "",
         ]
 
-        if info["distinct_count"] <= 20:
+        if info["distinct_count"] <= _MAX_DISTINCT_VALUES:
             dist_result = await db.execute_safe_query(
-                f"SELECT [{column_name}] as value, COUNT(*) as count "
-                f"FROM [{table_name}] GROUP BY [{column_name}] ORDER BY count DESC LIMIT 20"
+                f"SELECT [{column_name}] as value, "
+                f"COUNT(*) as count "
+                f"FROM [{table_name}] "
+                f"GROUP BY [{column_name}] "
+                f"ORDER BY count DESC "
+                f"LIMIT {_MAX_DISTINCT_VALUES}"
             )
             if dist_result["rows"]:
                 lines.append("Value distribution:")
-                lines.append(format_table(["value", "count"], dist_result["rows"]))
+                lines.append(
+                    format_table(
+                        ["value", "count"], dist_result["rows"]
+                    )
+                )
         else:
             top_result = await db.execute_safe_query(
-                f"SELECT [{column_name}] as value, COUNT(*) as count "
-                f"FROM [{table_name}] GROUP BY [{column_name}] ORDER BY count DESC LIMIT 10"
+                f"SELECT [{column_name}] as value, "
+                f"COUNT(*) as count "
+                f"FROM [{table_name}] "
+                f"GROUP BY [{column_name}] "
+                f"ORDER BY count DESC LIMIT 10"
             )
             if top_result["rows"]:
                 lines.append("Top 10 most frequent values:")
-                lines.append(format_table(["value", "count"], top_result["rows"]))
+                lines.append(
+                    format_table(
+                        ["value", "count"], top_result["rows"]
+                    )
+                )
 
         return "\n".join(lines)

@@ -1,9 +1,18 @@
+# =============================================================================
+# Taatal Digital (digital.taatal.com)
+# Copyright 2026 - All rights reserved under MIT License
+#
+# Project: DB Analytics MCP Server - Safe Database Queries for AI
+# Author:  Taatal Digital Engineering
+# Source:  https://github.com/taatal/blog-code/tree/main/ai/db-mcp-server
+# =============================================================================
 from mcp.server.fastmcp import FastMCP, Context
 
 from db_analytics_mcp.formatting import format_table
 
 
-def register(mcp: FastMCP):
+def register(mcp: FastMCP) -> None:
+    """Register schema inspection tools with the MCP server."""
 
     @mcp.tool()
     async def list_tables(ctx: Context) -> str:
@@ -49,12 +58,18 @@ def register(mcp: FastMCP):
         ]
 
         output = f"Table: {table_name}\n\n"
-        output += format_table(["column", "type", "nullable", "pk", "default"], display_rows)
+        output += format_table(
+            ["column", "type", "nullable", "pk", "default"],
+            display_rows,
+        )
 
         if fks:
             output += "\n\nRelationships:\n"
             for fk in fks:
-                output += f"  {fk['from']} -> {fk['table']}.{fk['to']}\n"
+                output += (
+                    f"  {fk['from']} -> "
+                    f"{fk['table']}.{fk['to']}\n"
+                )
 
         return output
 
@@ -62,7 +77,8 @@ def register(mcp: FastMCP):
     async def get_schema(ctx: Context) -> str:
         """Get the full database schema as CREATE TABLE statements.
 
-        Returns the complete DDL for all tables, showing structure and relationships.
+        Returns the complete DDL for all tables, showing structure
+        and relationships.
         """
         db = ctx.request_context.lifespan_context["db"]
         schema = await db.get_full_schema()

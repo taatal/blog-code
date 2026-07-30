@@ -1,4 +1,21 @@
+# =============================================================================
+# Taatal Digital (digital.taatal.com)
+# Copyright 2026 - All rights reserved under MIT License
+#
+# Project: Firefly-AEM Pipeline - Generative Asset Automation
+# Author:  Taatal Digital Engineering
+# Source:  https://github.com/taatal/blog-code/tree/main/adobe/firefly-aem-pipeline
+# =============================================================================
+"""AEM Assets Direct Binary Upload implementation."""
+
+import logging
+
 import httpx
+
+logger = logging.getLogger(__name__)
+
+_USER_AGENT = "taatal-firefly-aem/0.1.0 (digital.taatal.com)"
+_UPLOAD_TIMEOUT_SECONDS = 120.0
 
 
 async def upload_to_aem(
@@ -15,8 +32,18 @@ async def upload_to_aem(
     1. Initiate - AEM returns CDN-accelerated upload URIs
     2. PUT binary - Upload raw bytes to CDN edge
     3. Complete - AEM ingests the binary and kicks off processing
+
+    Args:
+        aem_host: AEM instance base URL.
+        aem_token: AEM authentication token.
+        folder_path: DAM folder path for the asset.
+        file_name: Target file name in AEM.
+        image_bytes: Raw image binary content.
+        mime_type: MIME type of the uploaded file.
     """
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    async with httpx.AsyncClient(
+        timeout=_UPLOAD_TIMEOUT_SECONDS, headers={"User-Agent": _USER_AGENT}
+    ) as client:
         # Step 1: Initiate upload
         initiate_url = f"{aem_host}/content/dam/{folder_path}.initiateUpload.json"
         initiate_resp = await client.post(

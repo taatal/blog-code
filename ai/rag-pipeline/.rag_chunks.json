@@ -1,0 +1,20 @@
+[
+  {
+    "text": "RAG Pipeline Architecture Guide\nChapter 1: Retrieval Fundamentals\nRetrieval-Augmented Generation (RAG) connects large language models to external knowledge bases. The core idea is simple: retrieve r\nThe embedding model converts text into dense vectors. BAAI/bge-small-en-v1.5 produces 384-dimensional vectors and has a maximum i\nBM25 is a probabilistic ranking function from classical information retrieval. It scores documents by term frequency and inverse document\nChapter 2: Hybrid Search\nHybrid search combines vector similarity with BM25 keyword matching. The merge uses Reciprocal Rank Fusion (RRF), a formula publish\nThe formula is: RRF(d) = sum(1 / (k + rank_i(d))) for each ranked list i.\nChapter 3: Re-Ranking\nCross-encoder models process query and document together, producing more accurate relevance scores than bi-encoders. The trade-off\nChapter 4: Evaluation\nRecall@K measures what fraction of relevant documents appear in the top K results. Mean Reciprocal Rank (MRR) measures the recipro",
+    "word_count": 142,
+    "metadata": {
+      "source": "sample-rag-guide.pdf",
+      "page": 1,
+      "chunk_index": 0
+    }
+  },
+  {
+    "text": "Chapter 5: Production Considerations\nChromaDB stores vectors using HNSW indexing with cosine distance. It persists to disk and supports metadata filtering with operators like\nThe default rate limit for the Anthropic API depends on your plan tier. Claude Sonnet 4.6 has a context window of 200,000 tokens. Cost pe\nFor batch processing, the BM25 index must be reconstructed from the full corpus at initialization time. The rank-bm25 library does not sup\nChapter 6: Safety and Grounding\nThe system prompt must instruct the model to use ONLY the provided context. Without explicit grounding constraints, the model supplem",
+    "word_count": 96,
+    "metadata": {
+      "source": "sample-rag-guide.pdf",
+      "page": 2,
+      "chunk_index": 0
+    }
+  }
+]

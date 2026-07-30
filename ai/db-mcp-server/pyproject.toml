@@ -7,10 +7,17 @@ name = "db-analytics-mcp"
 version = "0.1.0"
 description = "MCP server for database analytics - query business databases safely from AI assistants"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "Taatal Digital", email = "hello@digital.taatal.com"}]
 dependencies = [
     "mcp>=1.28.0,<2.0",
     "aiosqlite>=0.20.0",
 ]
+
+[project.urls]
+Homepage = "https://digital.taatal.com"
+Repository = "https://github.com/taatal/blog-code/tree/main/ai/db-mcp-server"
+Blog = "https://digital.taatal.com/blogs/build-mcp-server-database-analytics"
 
 [project.scripts]
 db-mcp = "db_analytics_mcp.cli:main"

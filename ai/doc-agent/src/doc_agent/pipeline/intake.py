@@ -1,3 +1,15 @@
+# =============================================================================
+# Taatal Digital (digital.taatal.com)
+# Copyright 2026 - All rights reserved under MIT License
+#
+# Project: Doc-Agent - AI Document Processing Pipeline
+# Author:  Taatal Digital Engineering
+# Source:  https://github.com/taatal/blog-code/tree/main/ai/doc-agent
+# =============================================================================
+"""PDF intake: text and table extraction using PyMuPDF."""
+
+from __future__ import annotations
+
 import sys
 import io
 import fitz
@@ -5,6 +17,14 @@ from pathlib import Path
 
 
 def extract_text(pdf_path: Path) -> dict:
+    """Extract text and tables from a PDF file.
+
+    Args:
+        pdf_path: Path to the PDF file.
+
+    Returns:
+        Dict with filename, page_count, pages, full_text, and tables.
+    """
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
     try:
@@ -36,6 +56,7 @@ def extract_text(pdf_path: Path) -> dict:
 
 
 def _extract_tables(page) -> list[str]:
+    """Extract tables from a PDF page as markdown strings."""
     tables = page.find_tables()
     extracted = []
 

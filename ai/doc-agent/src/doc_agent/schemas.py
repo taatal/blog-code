@@ -1,16 +1,40 @@
-EXTRACTION_TOOLS = [
+# =============================================================================
+# Taatal Digital (digital.taatal.com)
+# Copyright 2026 - All rights reserved under MIT License
+#
+# Project: Doc-Agent - AI Document Processing Pipeline
+# Author:  Taatal Digital Engineering
+# Source:  https://github.com/taatal/blog-code/tree/main/ai/doc-agent
+# =============================================================================
+"""Tool schemas for LLM-based structured extraction."""
+
+from __future__ import annotations
+
+EXTRACTION_TOOLS: list[dict] = [
     {
         "name": "extract_invoice",
         "description": "Extract structured data from an invoice document",
         "input_schema": {
             "type": "object",
             "properties": {
-                "vendor_name": {"type": "string", "description": "Company issuing the invoice"},
+                "vendor_name": {
+                    "type": "string",
+                    "description": "Company issuing the invoice",
+                },
                 "vendor_address": {"type": "string"},
                 "invoice_number": {"type": "string"},
-                "invoice_date": {"type": "string", "description": "ISO 8601 date"},
-                "due_date": {"type": "string", "description": "ISO 8601 date"},
-                "currency": {"type": "string", "description": "ISO 4217 currency code"},
+                "invoice_date": {
+                    "type": "string",
+                    "description": "ISO 8601 date",
+                },
+                "due_date": {
+                    "type": "string",
+                    "description": "ISO 8601 date",
+                },
+                "currency": {
+                    "type": "string",
+                    "description": "ISO 4217 currency code",
+                },
                 "line_items": {
                     "type": "array",
                     "items": {
@@ -21,17 +45,31 @@ EXTRACTION_TOOLS = [
                             "unit_price": {"type": "number"},
                             "total": {"type": "number"},
                         },
-                        "required": ["description", "quantity", "unit_price", "total"],
+                        "required": [
+                            "description",
+                            "quantity",
+                            "unit_price",
+                            "total",
+                        ],
                     },
                 },
                 "subtotal": {"type": "number"},
                 "tax_amount": {"type": "number"},
-                "tax_rate": {"type": "number", "description": "Tax rate as percentage"},
+                "tax_rate": {
+                    "type": "number",
+                    "description": "Tax rate as percentage",
+                },
                 "total_amount": {"type": "number"},
                 "payment_terms": {"type": "string"},
                 "bank_details": {"type": "string"},
             },
-            "required": ["vendor_name", "invoice_number", "invoice_date", "total_amount", "line_items"],
+            "required": [
+                "vendor_name",
+                "invoice_number",
+                "invoice_date",
+                "total_amount",
+                "line_items",
+            ],
         },
     },
     {
@@ -42,8 +80,14 @@ EXTRACTION_TOOLS = [
             "properties": {
                 "buyer_name": {"type": "string"},
                 "po_number": {"type": "string"},
-                "issue_date": {"type": "string", "description": "ISO 8601 date"},
-                "delivery_date": {"type": "string", "description": "ISO 8601 date"},
+                "issue_date": {
+                    "type": "string",
+                    "description": "ISO 8601 date",
+                },
+                "delivery_date": {
+                    "type": "string",
+                    "description": "ISO 8601 date",
+                },
                 "vendor_name": {"type": "string"},
                 "shipping_address": {"type": "string"},
                 "line_items": {
@@ -63,26 +107,49 @@ EXTRACTION_TOOLS = [
                 "payment_terms": {"type": "string"},
                 "notes": {"type": "string"},
             },
-            "required": ["buyer_name", "po_number", "issue_date", "line_items"],
+            "required": [
+                "buyer_name",
+                "po_number",
+                "issue_date",
+                "line_items",
+            ],
         },
     },
     {
         "name": "extract_contract",
-        "description": "Extract structured data from a contract document",
+        "description": (
+            "Extract structured data from a contract document"
+        ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "parties": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Names of all parties in the contract",
+                    "description": (
+                        "Names of all parties in the contract"
+                    ),
                 },
-                "contract_date": {"type": "string", "description": "ISO 8601 date"},
-                "effective_date": {"type": "string", "description": "ISO 8601 date"},
-                "expiry_date": {"type": "string", "description": "ISO 8601 date"},
+                "contract_date": {
+                    "type": "string",
+                    "description": "ISO 8601 date",
+                },
+                "effective_date": {
+                    "type": "string",
+                    "description": "ISO 8601 date",
+                },
+                "expiry_date": {
+                    "type": "string",
+                    "description": "ISO 8601 date",
+                },
                 "contract_value": {"type": "number"},
                 "currency": {"type": "string"},
-                "summary": {"type": "string", "description": "Brief summary of the contract scope"},
+                "summary": {
+                    "type": "string",
+                    "description": (
+                        "Brief summary of the contract scope"
+                    ),
+                },
                 "key_terms": {
                     "type": "array",
                     "items": {"type": "string"},
@@ -100,7 +167,10 @@ EXTRACTION_TOOLS = [
             "properties": {
                 "merchant_name": {"type": "string"},
                 "merchant_address": {"type": "string"},
-                "receipt_date": {"type": "string", "description": "ISO 8601 date"},
+                "receipt_date": {
+                    "type": "string",
+                    "description": "ISO 8601 date",
+                },
                 "items": {
                     "type": "array",
                     "items": {
@@ -118,7 +188,11 @@ EXTRACTION_TOOLS = [
                 "total_amount": {"type": "number"},
                 "payment_method": {"type": "string"},
             },
-            "required": ["merchant_name", "receipt_date", "total_amount"],
+            "required": [
+                "merchant_name",
+                "receipt_date",
+                "total_amount",
+            ],
         },
     },
 ]

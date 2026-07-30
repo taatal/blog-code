@@ -1,3 +1,11 @@
+# =============================================================================
+# Taatal Digital (digital.taatal.com)
+# Copyright 2026 - All rights reserved under MIT License
+#
+# Project: CI/CD Pipeline - GitHub Actions to AWS with Canary Deploys
+# Author:  Taatal Digital Engineering
+# Source:  https://github.com/taatal/blog-code/tree/main/cloud/cicd-pipeline
+# =============================================================================
 name: Deploy API
 
 on:
@@ -80,7 +88,7 @@ jobs:
           webhook-type: incoming-webhook
           payload: |
             {
-              "text": "📦 Image built: `${{ github.sha }}`. Starting canary deployment..."
+              "text": "Image built: `${{ github.sha }}`. Starting canary deployment..."
             }
 
   deploy:
@@ -143,7 +151,7 @@ jobs:
           webhook-type: incoming-webhook
           payload: |
             {
-              "text": "🚀 Canary deployment complete. `${{ github.sha }}` is now serving 100% traffic."
+              "text": "Canary deployment complete. `${{ github.sha }}` is now serving 100% traffic."
             }
 
       - name: Notify deployment failure

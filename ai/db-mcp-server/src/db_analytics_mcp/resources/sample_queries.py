@@ -1,3 +1,11 @@
+# =============================================================================
+# Taatal Digital (digital.taatal.com)
+# Copyright 2026 - All rights reserved under MIT License
+#
+# Project: DB Analytics MCP Server - Safe Database Queries for AI
+# Author:  Taatal Digital Engineering
+# Source:  https://github.com/taatal/blog-code/tree/main/ai/db-mcp-server
+# =============================================================================
 from mcp.server.fastmcp import FastMCP
 
 
@@ -132,7 +140,8 @@ ORDER BY revenue DESC
 """
 
 
-def register(mcp: FastMCP):
+def register(mcp: FastMCP) -> None:
+    """Register the sample queries resource with the MCP server."""
 
     @mcp.resource("schema://sample-queries")
     async def sample_queries() -> str:

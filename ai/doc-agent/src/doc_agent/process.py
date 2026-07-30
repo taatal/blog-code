@@ -1,3 +1,15 @@
+# =============================================================================
+# Taatal Digital (digital.taatal.com)
+# Copyright 2026 - All rights reserved under MIT License
+#
+# Project: Doc-Agent - AI Document Processing Pipeline
+# Author:  Taatal Digital Engineering
+# Source:  https://github.com/taatal/blog-code/tree/main/ai/doc-agent
+# =============================================================================
+"""Orchestration of the full document processing pipeline."""
+
+from __future__ import annotations
+
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -11,9 +23,13 @@ from doc_agent.pipeline.extract import extract_with_retry
 
 logger = logging.getLogger(__name__)
 
+_LOW_CONFIDENCE_THRESHOLD = 0.85
+
 
 @dataclass
 class ProcessingResult:
+    """Final output of processing a single document."""
+
     filename: str
     document_type: str
     data: dict
@@ -24,10 +40,21 @@ class ProcessingResult:
 
 
 def elapsed_ms(start: datetime) -> int:
-    return int((datetime.now(timezone.utc) - start).total_seconds() * 1000)
+    """Calculate elapsed milliseconds since a given start time."""
+    return int(
+        (datetime.now(timezone.utc) - start).total_seconds() * 1000
+    )
 
 
 def process_document(pdf_path: Path) -> ProcessingResult:
+    """Process a single PDF through classification, extraction, and validation.
+
+    Args:
+        pdf_path: Path to the PDF file.
+
+    Returns:
+        A ProcessingResult dataclass with extracted data and metadata.
+    """
     start = datetime.now(timezone.utc)
 
     doc = extract_text(pdf_path)
@@ -53,8 +80,11 @@ def process_document(pdf_path: Path) -> ProcessingResult:
         review_reasons.append("Validation failed after max retries")
     if extraction["validation"].warnings:
         review_reasons.extend(extraction["validation"].warnings)
-    if classification["confidence"] < 0.85:
-        review_reasons.append(f"Low classification confidence: {classification['confidence']}")
+    if classification["confidence"] < _LOW_CONFIDENCE_THRESHOLD:
+        review_reasons.append(
+            "Low classification confidence: %s"
+            % classification["confidence"]
+        )
 
     return ProcessingResult(
         filename=pdf_path.name,
@@ -67,15 +97,31 @@ def process_document(pdf_path: Path) -> ProcessingResult:
     )
 
 
-def process_batch(pdf_dir: Path, output_dir: Path, max_workers: int = 5):
+def process_batch(
+    pdf_dir: Path, output_dir: Path, max_workers: int = 5
+) -> dict:
+    """Process all PDFs in a directory concurrently.
+
+    Args:
+        pdf_dir: Directory containing PDF files.
+        output_dir: Directory for JSON result files.
+        max_workers: Maximum concurrent processing threads.
+
+    Returns:
+        Summary dict with 'processed', 'needs_review', and 'failed' lists.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
     pdfs = list(pdf_dir.glob("*.pdf"))
 
     if not pdfs:
-        logger.warning(f"No PDF files found in {pdf_dir}")
+        logger.warning("No PDF files found in %s", pdf_dir)
         return {"processed": [], "needs_review": [], "failed": []}
 
-    results = {"processed": [], "needs_review": [], "failed": []}
+    results: dict = {
+        "processed": [],
+        "needs_review": [],
+        "failed": [],
+    }
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
@@ -105,19 +151,24 @@ def process_batch(pdf_dir: Path, output_dir: Path, max_workers: int = 5):
                     results["processed"].append(result.filename)
 
                 logger.info(
-                    f"{result.filename}: {result.document_type} "
-                    f"({result.processing_time_ms}ms) "
-                    f"{'[REVIEW]' if result.needs_review else '[OK]'}"
+                    "%s: %s (%dms) %s",
+                    result.filename,
+                    result.document_type,
+                    result.processing_time_ms,
+                    "[REVIEW]" if result.needs_review else "[OK]",
                 )
 
             except Exception as e:
-                results["failed"].append({"file": pdf.name, "error": str(e)})
-                logger.error(f"{pdf.name}: FAILED - {e}")
+                results["failed"].append(
+                    {"file": pdf.name, "error": str(e)}
+                )
+                logger.error("%s: FAILED - %s", pdf.name, e)
 
     logger.info(
-        f"\nDone. Processed: {len(results['processed'])}, "
-        f"Review: {len(results['needs_review'])}, "
-        f"Failed: {len(results['failed'])}"
+        "Done. Processed: %d, Review: %d, Failed: %d",
+        len(results["processed"]),
+        len(results["needs_review"]),
+        len(results["failed"]),
     )
 
     return results

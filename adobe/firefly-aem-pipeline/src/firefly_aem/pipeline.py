@@ -1,4 +1,13 @@
-import asyncio
+# =============================================================================
+# Taatal Digital (digital.taatal.com)
+# Copyright 2026 - All rights reserved under MIT License
+#
+# Project: Firefly-AEM Pipeline - Generative Asset Automation
+# Author:  Taatal Digital Engineering
+# Source:  https://github.com/taatal/blog-code/tree/main/adobe/firefly-aem-pipeline
+# =============================================================================
+"""Orchestrates Firefly image generation and AEM upload as a batch pipeline."""
+
 import logging
 from dataclasses import dataclass
 
@@ -13,6 +22,17 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class AssetJob:
+    """Defines a single image generation and upload task.
+
+    Attributes:
+        prompt: Text prompt for Firefly image generation.
+        folder: AEM DAM folder path for the uploaded asset.
+        name_prefix: File name prefix for generated variants.
+        width: Output image width in pixels.
+        height: Output image height in pixels.
+        num_variations: Number of image variants to produce.
+    """
+
     prompt: str
     folder: str
     name_prefix: str
@@ -29,7 +49,19 @@ async def run_pipeline(
     aem_token: str,
     rate_limiter: RateLimiter | None = None,
 ) -> list[str]:
-    """Execute generation pipeline. Returns list of AEM asset paths created."""
+    """Execute generation pipeline. Returns list of AEM asset paths created.
+
+    Args:
+        jobs: List of asset generation jobs to process.
+        token_manager: Manages Adobe IMS token lifecycle.
+        client_id: Adobe Developer Console client ID.
+        aem_host: AEM instance base URL.
+        aem_token: AEM authentication token.
+        rate_limiter: Optional rate limiter instance for Firefly API calls.
+
+    Returns:
+        List of DAM paths for successfully uploaded assets.
+    """
     if rate_limiter is None:
         rate_limiter = RateLimiter()
 
@@ -48,7 +80,7 @@ async def run_pipeline(
                 num_variations=job.num_variations,
             )
         except Exception as e:
-            logger.error(f"Generation failed for '{job.name_prefix}': {e}")
+            logger.error("Generation failed for '%s': %s", job.name_prefix, e)
             continue
 
         async with httpx.AsyncClient() as http:
@@ -57,7 +89,9 @@ async def run_pipeline(
                     resp = await http.get(url, timeout=30.0)
                     resp.raise_for_status()
                 except httpx.HTTPError as e:
-                    logger.warning(f"Failed to download variant {i+1}: {e}")
+                    logger.warning(
+                        "Failed to download variant %d: %s", i + 1, e
+                    )
                     continue
 
                 image_bytes = resp.content
@@ -72,8 +106,8 @@ async def run_pipeline(
                         image_bytes=image_bytes,
                     )
                     created_paths.append(f"/content/dam/{job.folder}/{file_name}")
-                    logger.info(f"Uploaded: {job.folder}/{file_name}")
+                    logger.info("Uploaded: %s/%s", job.folder, file_name)
                 except Exception as e:
-                    logger.error(f"Upload failed for {file_name}: {e}")
+                    logger.error("Upload failed for %s: %s", file_name, e)
 
     return created_paths

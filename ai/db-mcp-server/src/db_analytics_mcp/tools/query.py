@@ -1,9 +1,18 @@
+# =============================================================================
+# Taatal Digital (digital.taatal.com)
+# Copyright 2026 - All rights reserved under MIT License
+#
+# Project: DB Analytics MCP Server - Safe Database Queries for AI
+# Author:  Taatal Digital Engineering
+# Source:  https://github.com/taatal/blog-code/tree/main/ai/db-mcp-server
+# =============================================================================
 from mcp.server.fastmcp import FastMCP, Context
 
 from db_analytics_mcp.formatting import format_result
 
 
-def register(mcp: FastMCP):
+def register(mcp: FastMCP) -> None:
+    """Register the execute_query tool with the MCP server."""
 
     @mcp.tool()
     async def execute_query(sql: str, ctx: Context) -> str:

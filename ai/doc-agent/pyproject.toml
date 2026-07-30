@@ -7,6 +7,8 @@ name = "doc-agent"
 version = "0.1.0"
 description = "Document processing pipeline with LLM-based extraction and validation"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "Taatal Digital", email = "hello@digital.taatal.com"}]
 dependencies = [
     "anthropic>=0.39.0",
     "openai>=1.0.0",
@@ -14,6 +16,11 @@ dependencies = [
     "pandas>=2.0.0",
     "tabulate>=0.9.0",
 ]
+
+[project.urls]
+Homepage = "https://digital.taatal.com"
+Repository = "https://github.com/taatal/blog-code/tree/main/ai/doc-agent"
+Blog = "https://digital.taatal.com/blogs/build-ai-document-processing-agent"
 
 [project.scripts]
 doc-agent = "doc_agent.cli:main"

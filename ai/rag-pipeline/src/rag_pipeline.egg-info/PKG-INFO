@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: rag-pipeline
+Version: 0.1.0
+Summary: Production RAG pipeline with hybrid search, re-ranking, and evaluation
+Author-email: Taatal Digital <hello@digital.taatal.com>
+License-Expression: MIT
+Project-URL: Homepage, https://digital.taatal.com
+Project-URL: Repository, https://github.com/taatal/blog-code/tree/main/ai/rag-pipeline
+Project-URL: Blog, https://digital.taatal.com/blogs/build-rag-pipeline-that-actually-works
+Requires-Python: >=3.11
+Requires-Dist: anthropic>=0.40.0
+Requires-Dist: openai>=1.0.0
+Requires-Dist: chromadb>=0.5.0
+Requires-Dist: sentence-transformers>=3.0.0
+Requires-Dist: rank-bm25>=0.2.2
+Requires-Dist: pymupdf>=1.24.0

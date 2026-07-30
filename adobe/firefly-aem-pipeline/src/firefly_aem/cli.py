@@ -1,3 +1,13 @@
+# =============================================================================
+# Taatal Digital (digital.taatal.com)
+# Copyright 2026 - All rights reserved under MIT License
+#
+# Project: Firefly-AEM Pipeline - Generative Asset Automation
+# Author:  Taatal Digital Engineering
+# Source:  https://github.com/taatal/blog-code/tree/main/adobe/firefly-aem-pipeline
+# =============================================================================
+"""Command-line interface for the Firefly-AEM asset generation pipeline."""
+
 import argparse
 import asyncio
 import json
@@ -69,12 +79,21 @@ async def run(args: argparse.Namespace) -> None:
         rate_limiter=rate_limiter,
     )
 
-    print(f"\nCompleted. {len(created)} assets uploaded to AEM:")
+    print("\nCompleted. %d assets uploaded to AEM:" % len(created))
     for path in created:
-        print(f"  {path}")
+        print("  %s" % path)
+
+
+def _print_banner() -> None:
+    """Print the startup banner."""
+    from firefly_aem import __version__
+
+    print("\n  Taatal Digital | Firefly-AEM Pipeline v%s" % __version__)
+    print("  https://digital.taatal.com\n")
 
 
 def main() -> None:
+    _print_banner()
     args = parse_args()
 
     logging.basicConfig(
@@ -88,5 +107,5 @@ def main() -> None:
     except KeyboardInterrupt:
         sys.exit(1)
     except Exception as e:
-        logging.error(f"Pipeline failed: {e}")
+        logging.error("Pipeline failed: %s", e)
         sys.exit(1)

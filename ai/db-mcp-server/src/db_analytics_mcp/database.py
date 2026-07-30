@@ -1,59 +1,106 @@
+# =============================================================================
+# Taatal Digital (digital.taatal.com)
+# Copyright 2026 - All rights reserved under MIT License
+#
+# Project: DB Analytics MCP Server - Safe Database Queries for AI
+# Author:  Taatal Digital Engineering
+# Source:  https://github.com/taatal/blog-code/tree/main/ai/db-mcp-server
+# =============================================================================
 import asyncio
 import re
 
 import aiosqlite
 
-from db_analytics_mcp.safety import validate_query, enforce_row_limit, SafetyConfig
+from db_analytics_mcp.safety import (
+    validate_query,
+    enforce_row_limit,
+    SafetyConfig,
+)
 
 TABLE_NAME_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
+_BUSY_TIMEOUT_MS = 5000
+
 
 class Database:
-    def __init__(self, db_path: str, config: SafetyConfig = SafetyConfig()):
+    """Async wrapper around an SQLite database with safety guards.
+
+    Enforces read-only access, query validation, row limits,
+    and timeout constraints for safe AI-driven analytics.
+    """
+
+    def __init__(
+        self, db_path: str, config: SafetyConfig = SafetyConfig()
+    ) -> None:
         self.db_path = db_path
         self.config = config
         self._connection: aiosqlite.Connection | None = None
         self._table_cache: dict[str, list[dict]] | None = None
 
-    async def connect(self):
+    async def connect(self) -> None:
+        """Open the database connection in read-only mode."""
         self._connection = await aiosqlite.connect(self.db_path)
         self._connection.row_factory = aiosqlite.Row
         await self._connection.execute("PRAGMA query_only = ON")
-        await self._connection.execute("PRAGMA busy_timeout = 5000")
+        await self._connection.execute(
+            f"PRAGMA busy_timeout = {_BUSY_TIMEOUT_MS}"
+        )
 
-    async def close(self):
+    async def close(self) -> None:
+        """Close the database connection and release resources."""
         if self._connection:
             await self._connection.close()
             self._connection = None
 
     @property
     def conn(self) -> aiosqlite.Connection:
+        """Return the active connection or raise if not connected."""
         if self._connection is None:
-            raise RuntimeError("Database not connected. Call connect() first.")
+            raise RuntimeError(
+                "Database not connected. Call connect() first."
+            )
         return self._connection
 
     def validate_identifier(self, name: str) -> bool:
+        """Check whether a name is a safe SQL identifier."""
         return bool(TABLE_NAME_PATTERN.match(name))
 
     async def table_exists(self, table_name: str) -> bool:
+        """Return True if the given table exists in the database."""
         if not self.validate_identifier(table_name):
             return False
         cursor = await self.conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name = ?",
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type='table' AND name = ?",
             (table_name,),
         )
         return await cursor.fetchone() is not None
 
-    async def column_exists(self, table_name: str, column_name: str) -> bool:
-        if not self.validate_identifier(table_name) or not self.validate_identifier(column_name):
+    async def column_exists(
+        self, table_name: str, column_name: str
+    ) -> bool:
+        """Return True if the column exists in the specified table."""
+        if (
+            not self.validate_identifier(table_name)
+            or not self.validate_identifier(column_name)
+        ):
             return False
         columns = await self.get_table_schema(table_name)
         return any(c["name"] == column_name for c in columns)
 
     async def execute_safe_query(self, sql: str) -> dict:
+        """Validate and execute a read-only SQL query.
+
+        Returns a dict with columns, rows, row_count, and truncated flag,
+        or an error key if the query was blocked or failed.
+        """
         validation = validate_query(sql, self.config)
         if not validation.safe:
-            return {"error": validation.reason, "rows": [], "columns": []}
+            return {
+                "error": validation.reason,
+                "rows": [],
+                "columns": [],
+            }
 
         safe_sql = enforce_row_limit(sql, self.config.max_rows)
 
@@ -63,7 +110,11 @@ class Database:
                 timeout=self.config.timeout_seconds,
             )
             rows = await cursor.fetchall()
-            columns = [desc[0] for desc in cursor.description] if cursor.description else []
+            columns = (
+                [desc[0] for desc in cursor.description]
+                if cursor.description
+                else []
+            )
 
             return {
                 "columns": columns,
@@ -73,23 +124,39 @@ class Database:
             }
 
         except asyncio.TimeoutError:
-            return {"error": f"Query timed out after {self.config.timeout_seconds}s", "rows": [], "columns": []}
+            return {
+                "error": (
+                    f"Query timed out after "
+                    f"{self.config.timeout_seconds}s"
+                ),
+                "rows": [],
+                "columns": [],
+            }
         except aiosqlite.Error as e:
             return {"error": str(e), "rows": [], "columns": []}
 
     async def get_tables(self) -> list[dict]:
+        """Return a list of all user tables with their row counts."""
         cursor = await self.conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+            "SELECT name FROM sqlite_master "
+            "WHERE type='table' AND name NOT LIKE 'sqlite_%' "
+            "ORDER BY name"
         )
         tables = await cursor.fetchall()
         result = []
         for table in tables:
-            count_cursor = await self.conn.execute(f"SELECT COUNT(*) as cnt FROM [{table['name']}]")
+            count_cursor = await self.conn.execute(
+                f"SELECT COUNT(*) as cnt FROM [{table['name']}]"
+            )
             count_row = await count_cursor.fetchone()
-            result.append({"name": table["name"], "row_count": count_row["cnt"]})
+            result.append({
+                "name": table["name"],
+                "row_count": count_row["cnt"],
+            })
         return result
 
     async def get_table_schema(self, table_name: str) -> list[dict]:
+        """Return column metadata for the specified table."""
         if not self.validate_identifier(table_name):
             return []
 
@@ -97,7 +164,9 @@ class Database:
         if self._table_cache and cache_key in self._table_cache:
             return self._table_cache[cache_key]
 
-        cursor = await self.conn.execute(f"PRAGMA table_info([{table_name}])")
+        cursor = await self.conn.execute(
+            f"PRAGMA table_info([{table_name}])"
+        )
         columns = await cursor.fetchall()
         result = [
             {
@@ -116,20 +185,32 @@ class Database:
         return result
 
     async def get_full_schema(self) -> str:
+        """Return CREATE TABLE DDL for all user tables."""
         cursor = await self.conn.execute(
-            "SELECT sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+            "SELECT sql FROM sqlite_master "
+            "WHERE type='table' AND name NOT LIKE 'sqlite_%' "
+            "ORDER BY name"
         )
         rows = await cursor.fetchall()
-        return "\n\n".join(row["sql"] for row in rows if row["sql"])
+        return "\n\n".join(
+            row["sql"] for row in rows if row["sql"]
+        )
 
     async def get_foreign_keys(self, table_name: str) -> list[dict]:
+        """Return foreign key relationships for the given table."""
         if not self.validate_identifier(table_name):
             return []
-        cursor = await self.conn.execute(f"PRAGMA foreign_key_list([{table_name}])")
+        cursor = await self.conn.execute(
+            f"PRAGMA foreign_key_list([{table_name}])"
+        )
         rows = await cursor.fetchall()
-        return [{"from": row["from"], "table": row["table"], "to": row["to"]} for row in rows]
+        return [
+            {"from": row["from"], "table": row["table"], "to": row["to"]}
+            for row in rows
+        ]
 
     async def generate_data_dictionary(self) -> str:
+        """Generate a Markdown data dictionary from the live schema."""
         tables = await self.get_tables()
         lines = ["# Database Schema", ""]
 
@@ -147,13 +228,18 @@ class Database:
             for col in columns:
                 pk_marker = "*" if col["primary_key"] else ""
                 nullable = "YES" if col["nullable"] else "NO"
-                lines.append(f"| {col['name']} | {col['type']} | {nullable} | {pk_marker} |")
+                lines.append(
+                    f"| {col['name']} | {col['type']} "
+                    f"| {nullable} | {pk_marker} |"
+                )
 
             if fks:
                 lines.append("")
                 lines.append("Relationships:")
                 for fk in fks:
-                    lines.append(f"- {fk['from']} -> {fk['table']}.{fk['to']}")
+                    lines.append(
+                        f"- {fk['from']} -> {fk['table']}.{fk['to']}"
+                    )
 
             lines.append("")
 

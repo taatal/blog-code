@@ -7,9 +7,16 @@ name = "firefly-aem-pipeline"
 version = "0.1.0"
 description = "Generate assets with Adobe Firefly Services and upload to AEM Assets as a Cloud Service"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "Taatal Digital", email = "hello@digital.taatal.com"}]
 dependencies = [
     "httpx>=0.27.0",
 ]
+
+[project.urls]
+Homepage = "https://digital.taatal.com"
+Repository = "https://github.com/taatal/blog-code/tree/main/adobe/firefly-aem-pipeline"
+Blog = "https://digital.taatal.com/blogs/integrating-firefly-services-aem-content-pipeline"
 
 [project.scripts]
 firefly-aem = "firefly_aem.cli:main"

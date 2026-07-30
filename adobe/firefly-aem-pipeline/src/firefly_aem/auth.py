@@ -1,12 +1,39 @@
+# =============================================================================
+# Taatal Digital (digital.taatal.com)
+# Copyright 2026 - All rights reserved under MIT License
+#
+# Project: Firefly-AEM Pipeline - Generative Asset Automation
+# Author:  Taatal Digital Engineering
+# Source:  https://github.com/taatal/blog-code/tree/main/adobe/firefly-aem-pipeline
+# =============================================================================
+"""Adobe IMS OAuth token management for Firefly API authentication."""
+
+import logging
 import time
 
 import httpx
 
+logger = logging.getLogger(__name__)
+
 IMS_TOKEN_URL = "https://ims-na1.adobelogin.com/ims/token/v3"
+_USER_AGENT = "taatal-firefly-aem/0.1.0 (digital.taatal.com)"
+
+# 24h token lifetime minus 1h safety margin (in seconds)
+_TOKEN_REFRESH_BUFFER = 82800
 
 
 async def get_access_token(client_id: str, client_secret: str, scopes: str) -> str:
-    async with httpx.AsyncClient() as client:
+    """Exchange client credentials for an Adobe IMS access token.
+
+    Args:
+        client_id: Adobe Developer Console client ID.
+        client_secret: Adobe Developer Console client secret.
+        scopes: Comma-separated OAuth scopes.
+
+    Returns:
+        A valid access token string.
+    """
+    async with httpx.AsyncClient(headers={"User-Agent": _USER_AGENT}) as client:
         response = await client.post(
             IMS_TOKEN_URL,
             data={
@@ -37,5 +64,5 @@ class TokenManager:
         self._token = await get_access_token(
             self._client_id, self._client_secret, self._scopes
         )
-        self._expires_at = time.time() + 82800  # Refresh 1h before 24h expiry
+        self._expires_at = time.time() + _TOKEN_REFRESH_BUFFER
         return self._token

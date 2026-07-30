@@ -1,3 +1,11 @@
+# =============================================================================
+# Taatal Digital (digital.taatal.com)
+# Copyright 2026 - All rights reserved under MIT License
+#
+# Project: CI/CD Pipeline - GitHub Actions to AWS with Canary Deploys
+# Author:  Taatal Digital Engineering
+# Source:  https://github.com/taatal/blog-code/tree/main/cloud/cicd-pipeline
+# =============================================================================
 resource "aws_cloudwatch_metric_alarm" "api_5xx" {
   alarm_name          = "api-5xx-rate-high"
   comparison_operator = "GreaterThanThreshold"
